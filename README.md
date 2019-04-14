@@ -5,20 +5,21 @@ Command line script to play Ace Streams on macOS using IINA media player
 	<img src="demo.png">
 </p>
 
-### Usage
-Run `./play <Acestream ID>` or `./play acestream://<Acestream ID>`. Use CTRL+C to close.
+## Usage
+Run `./play <Acestream ID>` or `./play acestream://<Acestream ID>`.<br>
+Use CTRL+C to close.
 
-### Requirements
+## Requirements
 - [Docker](https://www.docker.com) - Enterprise Application Container Platform
 - [IINA](https://iina.io) - The modern media player for macOS
 
-### Optional: Make script global
+## Optional: Make script global
 ```
 $ cd acestream-iina
 $ cp ./play /usr/local/bin
 ```
 Now you can use `play` command from any Terminal session.
 
-### Credits
+## Credits
 - [Acestream dockerized image (blaiseio/acestream)](https://hub.docker.com/r/blaiseio/acestream)
 - [blaise-ios/acelink](https://github.com/blaise-io/acelink)
