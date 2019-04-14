@@ -1,0 +1,77 @@
+#!/bin/bash
+
+export PATH="$PATH:/usr/local/bin"
+
+function trap_ctrlc () {
+	printf "\n"
+	if docker ps &> /dev/null; then
+		echo "[*] quitting iina..."
+		osascript -e 'quit app "IINA"' &> /dev/null
+		
+		if docker top $name &> /dev/null; then
+			echo "[*] stopping server..."
+			docker stop $name &> /dev/null || true
+		fi
+		
+		echo "[*] quitting docker..."
+		osascript -e 'quit app "Docker"' 1> /dev/null
+	fi
+	exit 2
+}
+trap "trap_ctrlc" 2
+
+image="blaiseio/acestream:1.1.1"
+name="acelink--ace-stream-server"
+port="6878"
+
+# remove "acestream://" from arg if found at the beginning
+full=$1
+prefix="acestream://"
+hash=${full/#$prefix}
+
+# Start Docker if not running
+if ! docker ps &> /dev/null; then
+	open --background --hide -a Docker
+	printf "[*] starting docker"
+
+	# Wait until Docker runs
+	until docker ps &> /dev/null; do
+		printf "."
+		sleep 0.5
+	done
+	printf "\n"
+fi
+echo "[*] docker is running"
+
+# Download Docker image if not available
+if ! docker image inspect $image &> /dev/null; then
+	echo "[*] pulling docker image ${image}"
+	docker pull $image
+fi
+
+# Start Ace Stream server if not running
+if ! nc -z 127.0.0.1 $port &> /dev/null; then
+	printf "[*] starting Ace Stream server"
+	docker run --rm --detach \
+		--publish $port:$port \
+		--name=$name $image 1> /dev/null
+
+	# Wait until Ace Stream server runs
+	until curl "http://127.0.0.1:${port}/webui/api/service?method=get_version" &> /dev/null; do
+		printf "."
+		sleep 0.5
+	done
+	printf "\n"
+fi
+echo "[*] acestream server is running"
+
+# Open stream in IINA
+stream="http://127.0.0.1:${port}/ace/getstream?id=${hash}"
+echo "[*] opening stream"
+/Applications/IINA.app/Contents/MacOS/iina-cli "${stream}"
+
+# Keep running until CTRL+C
+while true
+do
+	sleep 10
+done
