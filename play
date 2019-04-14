@@ -20,6 +20,25 @@ function trap_ctrlc () {
 }
 trap "trap_ctrlc" 2
 
+function helptext {
+	scr=$(basename $0)
+	echo "USAGE: ./$scr <Acestream ID>"
+}
+
+[ -z "$1" ] && helptext && exit 0
+
+if ! ls /Applications/ | grep -qi Docker
+then 
+	echo "[!] Error! Docker not found, get it at https://www.docker.com";
+	exit 1
+fi
+
+if ! ls /Applications/ | grep -qi IINA
+then 
+	echo "[!] Error! IINA not found, get it at https://iina.io";
+	exit 1
+fi
+
 image="blaiseio/acestream:1.1.1"
 name="acelink--ace-stream-server"
 port="6878"
