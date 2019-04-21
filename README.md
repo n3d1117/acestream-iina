@@ -13,13 +13,13 @@ Use CTRL+C to close.
 - [Docker](https://www.docker.com) - Enterprise Application Container Platform
 - [IINA](https://iina.io) - The modern media player for macOS
 
-## Optional: Make script global
+## Make script global (optional)
 ```
 $ cd acestream-iina
 $ cp ./play /usr/local/bin
 ```
-Now you can use `play` command from any Terminal session.
+Now you can use `play` command from any directory.
 
 ## Credits
 - [Acestream dockerized image (blaiseio/acestream)](https://hub.docker.com/r/blaiseio/acestream)
-- [blaise-ios/acelink](https://github.com/blaise-io/acelink)
+- [blaise-io/acelink](https://github.com/blaise-io/acelink)
