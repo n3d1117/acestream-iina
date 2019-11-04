@@ -14,7 +14,11 @@ function trap_ctrlc () {
 		fi
 		
 		echo "[*] quitting docker..."
-		osascript -e 'quit app "Docker"' 1> /dev/null
+		if [ "$homebrew_mode" = true ]; then
+			docker-machine stop default &> /dev/null
+		else
+			osascript -e 'quit app "Docker"' 1> /dev/null
+		fi
 	fi
 	exit 2
 }
@@ -27,16 +31,24 @@ function helptext {
 
 [ -z "$1" ] && helptext && exit 0
 
-if ! ls /Applications/ | grep -qi Docker
+if ! ls /Applications/ | grep -qi IINA
 then 
-	echo "[!] Error! Docker not found, get it at https://www.docker.com";
+	echo "[!] Error! IINA not found, get it at https://iina.io"
 	exit 1
 fi
 
-if ! ls /Applications/ | grep -qi IINA
-then 
-	echo "[!] Error! IINA not found, get it at https://iina.io";
-	exit 1
+homebrew_mode=false
+
+if ! ls /Applications/ | grep -qi Docker; then 
+	if [ -x "$(docker-machine)" ]; then
+		echo '[!] Error! Docker not found, get it at https://www.docker.com or with homebrew'
+		exit 1
+	else
+		echo "[*] Detected Docker installation with homebrew (docker-machine)"
+		homebrew_mode=true
+	fi
+else
+	echo "[*] Detected desktop-based Docker installation"
 fi
 
 image="blaiseio/acelink:1.3.0"
@@ -49,17 +61,23 @@ prefix="acestream://"
 hash=${full/#$prefix}
 
 # Start Docker if not running
-if ! docker ps &> /dev/null; then
-	open --background --hide -a Docker
-	printf "[*] starting docker"
-
-	# Wait until Docker runs
-	until docker ps &> /dev/null; do
-		printf "."
-		sleep 0.5
-	done
-	printf "\n"
+printf "[*] starting docker"
+if [ "$homebrew_mode" = true ]; then
+	# Assuming docker-machine is correctly set up and working
+	docker-machine start default &> /dev/null
+	docker-machine env default &> /dev/null
+	eval $(docker-machine env default)
+else
+	if ! docker ps &> /dev/null; then
+		open --background --hide -a Docker
+	fi
 fi
+# Wait until Docker runs
+until docker ps &> /dev/null; do
+	printf "."
+	sleep 0.5
+done
+printf "\n"
 echo "[*] docker is running"
 
 # Download Docker image if not available
@@ -68,13 +86,18 @@ if ! docker image inspect $image &> /dev/null; then
 	docker pull $image
 fi
 
+ip_address="127.0.0.1"
+if [ "$homebrew_mode" = true ]; then
+	ip_address=$(docker-machine ip)
+fi
+
 # Start Ace Stream server if not running
-if ! nc -z 127.0.0.1 $port &> /dev/null; then
+if ! nc -z $ip_address $port &> /dev/null; then
 	printf "[*] starting Ace Stream server"
-	docker run -d --rm -p $port:$port --name=$name $image
+	docker run -d --rm -p $port:$port --name=$name $image 1> /dev/null
 
 	# Wait until Ace Stream server runs
-	until curl "http://127.0.0.1:${port}/webui/api/service?method=get_version" &> /dev/null; do
+	until curl "http://$ip_address:${port}/webui/api/service?method=get_version" &> /dev/null; do
 		printf "."
 		sleep 0.5
 	done
@@ -83,7 +106,7 @@ fi
 echo "[*] acestream server is running"
 
 # Open stream in IINA
-stream="http://127.0.0.1:${port}/ace/getstream?id=${hash}"
+stream="http://$ip_address:${port}/ace/getstream?id=${hash}"
 echo "[*] opening stream"
 /Applications/IINA.app/Contents/MacOS/iina-cli "${stream}"
 
